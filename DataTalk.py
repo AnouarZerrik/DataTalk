@@ -390,7 +390,7 @@ def query_interface_page():
             #     st.chat_message(msg["role"]).write(msg["content"])
 
         prompt = st.chat_input(
-            placeholder="`+` for data manipulation, `-` for plotly")
+            placeholder="`+` for data manipulation, `-` for plotly and `*` for code handling")
 
         if prompt and prompt != '':
             handle_user_input(prompt)

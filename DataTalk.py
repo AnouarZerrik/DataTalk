@@ -542,6 +542,7 @@ def handle_sql_query(prompt):
 
     sql = markdown_to_sql(sql)
 
+
     st.session_state.messages.append(
         {"role": "assistant", "type": "df", "content": df_message})
     st.chat_message("assistant").write(df_message)

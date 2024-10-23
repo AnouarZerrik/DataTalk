@@ -488,6 +488,8 @@ def handle_sql_query(prompt):
     <Restrictions>
     1. DO NOT make any DML statements (INSERT, UPDATE, DELETE, DROP etc.) to the database. It is not our database.
     2. DO NOT use any SQL Clauses(IS, NOT, IN,..etc) like Aliases.
+    3. Use Aliases for rename the tables.
+    4. Always give a names for the result columns.
     </Restrictions>
 
     <Question>
@@ -528,27 +530,31 @@ def handle_sql_query(prompt):
         query = query.replace(";", "")
     except:
         pass
+    
+    
+    try :
+        sql = f"""```sql
+        {query}```"""
+        st.session_state.messages.append(
+            {"role": "ai", "type": "sql", "content": sql})
+        st.chat_message("ai", avatar="🤖").markdown(sql)
 
-    sql = f"""```sql
-    {query}```"""
-    st.session_state.messages.append(
-        {"role": "ai", "type": "sql", "content": sql})
-    st.chat_message("ai", avatar="🤖").markdown(sql)
+        df_message = return_df(query)
 
-    df_message = return_df(query)
+        if df_message is not None:
+            st.session_state.df_is_changed = True
 
-    if df_message is not None:
-        st.session_state.df_is_changed = True
-
-    sql = markdown_to_sql(sql)
+        sql = markdown_to_sql(sql)
 
 
-    st.session_state.messages.append(
-        {"role": "assistant", "type": "df", "content": df_message})
-    st.chat_message("assistant").write(df_message)
+        st.session_state.messages.append(
+            {"role": "assistant", "type": "df", "content": df_message})
+        st.chat_message("assistant").write(df_message)
 
-    st.session_state.DataFrame = st.session_state.df = df_message
-    st.session_state.sql_plotly = 'sql'
+        st.session_state.DataFrame = st.session_state.df = df_message
+        st.session_state.sql_plotly = 'sql'
+    except Exception as e:
+        st.chat_message("assistant").error(e)
 
 
 def get_duckdb_schema_for_llm(db_connection):

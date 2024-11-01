@@ -421,6 +421,8 @@ def query_interface_page():
                     fig_titles = [d['title'] for d in filtered_plots]
                     file_path = create_dashboard_html(
                         figures_list, 'Dashboard', fig_titles, File_name)
+                    # file_path = create_enhanced_dashboard(
+                    #     figures_list, 'Dashboard', fig_titles, File_name)
                     # Add the assistant's message with the markdown link
                     from pathlib import Path
 
@@ -524,7 +526,7 @@ def handle_sql_query(prompt):
         sql = st.session_state.chat.send_message(prompt_template).text
     else:
         sql = st.session_state.chat.send_message(prompt_template_2).text
-
+    sql_ai = sql
     query = extract_sql(sql)
     try:
         query = query.replace(";", "")
@@ -555,6 +557,7 @@ def handle_sql_query(prompt):
         st.session_state.sql_plotly = 'sql'
     except Exception as e:
         st.chat_message("assistant").error(e)
+        print(sql_ai)
 
 
 def get_duckdb_schema_for_llm(db_connection):
@@ -997,10 +1000,11 @@ def handle_plotly_visualization(prompt: str):
             <steps>
             1. Carefully review the dataframe information provided in the <df_info> section to understand the structure and content of the dataframe.
             2. Generate Python code to create the specified plot type using the dataframe. Consider the following:
-            - Import necessary libraries (e.g., pandas, plotly)
-            - Use appropriate Plotly functions to generate the plot based on the <plot_type>
-            - Customize the plot (e.g., title, labels, legend, colors) to enhance readability and aesthetics
-            - Assign the plot figure to a variable named `fig`
+            3. Import necessary libraries (e.g., pandas, plotly)
+            4. Use only import plotly.graph_objects as go for generate plots
+            4. Use appropriate Plotly functions to generate the plot based on the <plot_type>
+            5. Customize the plot (e.g., title, labels, legend, colors) to enhance readability and aesthetics
+            6. Assign the plot figure to a variable named `fig`
             </steps>
 
             <restrictions>
@@ -1076,6 +1080,7 @@ def handle_plotly_visualization(prompt: str):
             st.session_state.sql_plotly = 'plotly'
         except Exception as e:
             st.warning(e)
+            print(res.text)
     else:
         st.warning("Please Run SQL or PYTHON query result first")
 
@@ -1642,6 +1647,249 @@ def convert_list_to_notebook(code_list, notebook_name="example_notebook"):
 #         f.write(html)
 
 #     return file_name
+import json
+from typing import Union, Dict, List, Any
+
+# def ensure_plot_colors(plot_json: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
+#     """
+#     Comprehensive function to add default colors to plotly JSON data for all trace types.
+    
+#     Args:
+#         plot_json (Union[str, Dict]): Plotly figure JSON data or dictionary
+        
+#     Returns:
+#         Dict: Modified plotly JSON data with colors added where missing
+#     """
+#     # Convert string to dict if needed
+#     if isinstance(plot_json, str):
+#         plot_data = json.loads(plot_json)
+#     else:
+#         plot_data = plot_data = json.loads(json.dumps(plot_json))  # Deep copy through serialization
+    
+#     # Default colors list (Plotly's default color sequence)
+#     default_colors = [
+#         '#1f77b4',  # muted blue
+#         '#ff7f0e',  # safety orange
+#         '#2ca02c',  # cooked asparagus green
+#         '#d62728',  # brick red
+#         '#9467bd',  # muted purple
+#         '#8c564b',  # chestnut brown
+#         '#e377c2',  # raspberry yogurt pink
+#         '#7f7f7f',  # middle gray
+#         '#bcbd22',  # curry yellow-green
+#         '#17becf'   # blue-teal
+#     ]
+    
+#     # Default colorscales for different plot types
+#     default_colorscales = {
+#         'heatmap': 'Viridis',
+#         'contour': 'Viridis',
+#         'surface': 'Viridis',
+#         'histogram2d': 'Viridis',
+#         'histogram2dcontour': 'Viridis',
+#         'choropleth': 'Viridis',
+#         'densitymapbox': 'Viridis'
+#     }
+    
+#     # Properties that might need colors for different trace types
+#     color_properties = {
+#         'scatter': ['marker.color', 'line.color', 'error_x.color', 'error_y.color'],
+#         'scattergl': ['marker.color', 'line.color'],
+#         'scatter3d': ['marker.color', 'line.color', 'error_x.color', 'error_y.color', 'error_z.color'],
+#         'bar': ['marker.color', 'error_x.color', 'error_y.color'],
+#         'box': ['marker.color', 'line.color'],
+#         'violin': ['marker.color', 'line.color'],
+#         'candlestick': ['increasing.line.color', 'decreasing.line.color'],
+#         'ohlc': ['increasing.line.color', 'decreasing.line.color'],
+#         'waterfall': ['increasing.marker.color', 'decreasing.marker.color'],
+#         'funnel': ['marker.color'],
+#         'funnelarea': ['marker.colors'],
+#         'pie': ['marker.colors'],
+#         'sunburst': ['marker.colors'],
+#         'treemap': ['marker.colors'],
+#         'sankey': ['node.color', 'link.color'],
+#         'indicator': ['marker.color', 'line.color'],
+#         'icicle': ['marker.colors'],
+#         'carpet': ['aaxis.color', 'baxis.color']
+#     }
+
+#     def set_nested_value(obj: Dict, path: str, value: Any) -> None:
+#         """Set a value in a nested dictionary using a dot-notation path."""
+#         parts = path.split('.')
+#         for part in parts[:-1]:
+#             if part not in obj:
+#                 obj[part] = {}
+#             obj = obj[part]
+#         if parts[-1] not in obj:
+#             obj[parts[-1]] = value
+
+#     def get_nested_value(obj: Dict, path: str) -> Any:
+#         """Get a value from a nested dictionary using a dot-notation path."""
+#         parts = path.split('.')
+#         for part in parts:
+#             if part not in obj:
+#                 return None
+#             obj = obj[part]
+#         return obj
+
+#     if 'data' in plot_data:
+#         for i, trace in enumerate(plot_data['data']):
+#             color_index = i % len(default_colors)
+#             trace_type = trace.get('type', 'scatter')  # Default to scatter if type not specified
+            
+#             # Handle colorscale-based plots
+#             if trace_type in default_colorscales and 'colorscale' not in trace:
+#                 trace['colorscale'] = default_colorscales[trace_type]
+            
+#             # Handle special cases for specific plot types
+#             if trace_type in ['pie', 'sunburst', 'treemap', 'icicle', 'funnelarea']:
+#                 if 'marker' not in trace:
+#                     trace['marker'] = {}
+#                 if 'colors' not in trace['marker']:
+#                     trace['marker']['colors'] = default_colors
+            
+#             # Handle sankey diagrams
+#             elif trace_type == 'sankey':
+#                 if 'node' not in trace:
+#                     trace['node'] = {}
+#                 if 'color' not in trace['node']:
+#                     trace['node']['color'] = default_colors[color_index]
+#                 if 'link' not in trace:
+#                     trace['link'] = {}
+#                 if 'color' not in trace['link']:
+#                     trace['link']['color'] = default_colors[(color_index + 1) % len(default_colors)]
+            
+#             # Handle properties for the specific trace type
+#             if trace_type in color_properties:
+#                 for property_path in color_properties[trace_type]:
+#                     if not get_nested_value(trace, property_path):
+#                         set_nested_value(trace, property_path, default_colors[color_index])
+            
+#             # Handle showscale property for applicable traces
+#             if trace_type in ['heatmap', 'contour', 'surface']:
+#                 if 'showscale' not in trace:
+#                     trace['showscale'] = True
+            
+#             # Handle special line styling
+#             if 'line' in trace and isinstance(trace['line'], dict):
+#                 if 'width' not in trace['line']:
+#                     trace['line']['width'] = 2
+            
+#             # Handle special marker styling
+#             if 'marker' in trace and isinstance(trace['marker'], dict):
+#                 if 'size' not in trace['marker']:
+#                     trace['marker']['size'] = 6
+#                 if 'opacity' not in trace['marker']:
+#                     trace['marker']['opacity'] = 1
+    
+#     # Handle layout colors if present
+#     if 'layout' in plot_data:
+#         layout = plot_data['layout']
+#         if 'paper_bgcolor' not in layout:
+#             layout['paper_bgcolor'] = 'white'
+#         if 'plot_bgcolor' not in layout:
+#             layout['plot_bgcolor'] = 'white'
+    
+#     return plot_data
+
+# import numpy as np
+# def numpy_encoder(obj):
+#     """Custom JSON encoder for NumPy types"""
+#     if isinstance(obj, np.integer):
+#         return int(obj)
+#     elif isinstance(obj, np.floating):
+#         return float(obj)
+#     elif isinstance(obj, np.ndarray):
+#         return obj.tolist()
+#     elif isinstance(obj, np.bool_):
+#         return bool(obj)
+#     raise TypeError(f'Object of type {type(obj)} is not JSON serializable')
+
+# def ensure_plot_colors(plot_json):
+#     """
+#     Add default colors to plotly JSON data if colors are not specified.
+#     Now handles NumPy arrays properly.
+#     """
+#     # Convert to dict and handle NumPy arrays
+#     if isinstance(plot_json, str):
+#         plot_data = json.loads(plot_json)
+#     else:
+#         try:
+#             plot_data = json.loads(json.dumps(plot_json, default=numpy_encoder))
+#         except TypeError as e:
+#             print(f"Error serializing plot data: {e}")
+#             # Fall back to direct copy if serialization fails
+#             plot_data = plot_json.copy()
+    
+#     # Default colors list
+#     default_colors = [
+#         '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+#         '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+#     ]
+    
+#     if 'data' in plot_data:
+#         for i, trace in enumerate(plot_data['data']):
+#             color_index = i % len(default_colors)
+            
+#             # Handle different trace types
+#             if 'type' in trace:
+#                 if trace['type'] in ['scatter', 'line']:
+#                     if 'line' in trace and 'color' not in trace['line']:
+#                         trace['line']['color'] = default_colors[color_index]
+#                     if 'marker' in trace and 'color' not in trace['marker']:
+#                         trace['marker']['color'] = default_colors[color_index]
+                
+#                 elif trace['type'] in ['bar', 'column']:
+#                     if 'marker' not in trace:
+#                         trace['marker'] = {}
+#                     if 'color' not in trace['marker']:
+#                         trace['marker']['color'] = default_colors[color_index]
+                
+#                 elif trace['type'] == 'pie':
+#                     if 'marker' not in trace:
+#                         trace['marker'] = {'colors': default_colors}
+#                     elif 'colors' not in trace['marker']:
+#                         trace['marker']['colors'] = default_colors
+            
+#             # For traces without specified type
+#             elif 'marker' in trace and 'color' not in trace['marker']:
+#                 trace['marker']['color'] = default_colors[color_index]
+    
+#     return plot_data
+
+# def create_enhanced_dashboard(figures_list, dashboard_title='Dashboard', fig_titles=None, dashboard_name='Dashboard'):
+#     """
+#     Creates a dashboard with automatic color management for all plots.
+#     Now handles NumPy arrays properly.
+#     """
+#     # First, ensure colors for all figures
+#     enhanced_figures = []
+#     for fig in figures_list:
+#         try:
+#             # Convert figure to dict
+#             fig_dict = fig.to_dict()
+#             fig_dict = go.Figure(fig_dict)
+            
+#             # Apply color enhancement
+#             colored_fig_dict = ensure_plot_colors(fig_dict)
+            
+#             # Convert back to Plotly figure
+#             enhanced_fig = go.Figure(colored_fig_dict)
+#             enhanced_figures.append(enhanced_fig)
+#         except Exception as e:
+#             print(f"Error processing figure: {e}")
+#             # If enhancement fails, use original figure
+#             enhanced_figures.append(fig)
+    
+#     # Create dashboard with enhanced figures
+#     file_name = create_dashboard_html(
+#         figures_list=enhanced_figures,
+#         dashboard_title=dashboard_title,
+#         fig_titles=fig_titles,
+#         dashboard_name=dashboard_name
+#     )
+    
+#     return file_name
 
 
 def create_dashboard_html(figures_list, dashboard_title='Dashboard', fig_titles=None, dashboard_name='Dashboard'):
@@ -2033,6 +2281,45 @@ def create_dashboard_html(figures_list, dashboard_title='Dashboard', fig_titles=
         f.write(html)
 
     return file_name
+
+
+# def create_enhanced_dashboard(figures_list, dashboard_title='Dashboard', fig_titles=None, dashboard_name='Dashboard'):
+#     """
+#     Creates a dashboard with automatic color management for all plots.
+    
+#     Parameters:
+#     - figures_list: List of Plotly figure objects
+#     - dashboard_title: Title of the dashboard
+#     - fig_titles: Optional list of titles for each figure
+#     - dashboard_name: Name used for the output file
+    
+#     Returns:
+#     - str: Name of the created HTML file
+#     """
+#     # First, ensure colors for all figures
+#     enhanced_figures = []
+#     for fig in figures_list:
+#         # Convert figure to dict
+#         fig_dict = fig.to_dict()
+        
+#         # Apply color enhancement
+#         colored_fig_dict = ensure_plot_colors(fig_dict)
+        
+#         # Convert back to Plotly figure
+#         enhanced_fig = go.Figure(colored_fig_dict)
+#         enhanced_figures.append(enhanced_fig)
+    
+#     # Create dashboard with enhanced figures
+#     file_name = create_dashboard_html(
+#         figures_list=enhanced_figures,
+#         dashboard_title=dashboard_title,
+#         fig_titles=fig_titles,
+#         dashboard_name=dashboard_name
+#     )
+    
+#     return file_name
+
+
 
 
 # Main app logic

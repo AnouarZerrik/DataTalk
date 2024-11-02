@@ -60,10 +60,106 @@ from streamlit_ace import st_ace
 
 import streamlit as st
 from code_editor import code_editor
-
+import json
 # response_dict = code_editor("&&")
 
+btn_settings_editor_btns = """[
+  {
+    "name": "Copy",
+    "feather": "Copy",
+    "hasText": true,
+    "alwaysOn": true,
+    "commands": [
+      "copyAll",
+      [
+        "infoMessage",
+        {
+          "text": "Copied to clipboard!",
+          "timeout": 2500,
+          "classToggle": "show"
+        }
+      ]
+    ],
+    "style": {
+      "top": "0rem",
+      "right": "0.4rem"
+    }
+  },
+  {
+    "name": "Shortcuts",
+    "feather": "Type",
+    "class": "shortcuts-button",
+    "hasText": true,
+    "commands": [
+      "toggleKeyboardShortcuts",
+      [
+        "conditionalExecute",
+        {
+          "targetQueryString": "#kbshortcutmenu",
+          "condition": true,
+          "command": [
+            "infoMessage",
+            {
+              "text": "VSCode keyboard shortcuts",
+              "timeout": 2500,
+              "classToggle": "show"
+            }
+          ]
+        }
+      ]
+    ],
+    "style": {
+      "bottom": "7rem",
+      "right": "0.4rem"
+    }
+  },
+  {
+    "name": "Save",
+    "feather": "Save",
+    "hasText": true,
+    "commands": [
+      "save-state",
+      [
+        "response",
+        "saved"
+      ]
+    ],
+    "response": "saved",
+    "style": {
+      "bottom": "10rem",
+      "right": "0.4rem"
+    }
+  },
+  {
+    "name": "Run",
+    "feather": "Play",
+    "primary": true,
+    "hasText": true,
+    "showWithIcon": true,
+    "commands": [
+      "submit"
+    ],
+    "style": {
+      "bottom": "0.44rem",
+      "right": "0.4rem"
+    }
+  },
+  {
+    "name": "Command",
+    "feather": "Terminal",
+    "primary": true,
+    "hasText": true,
+    "commands": [
+      "openCommandPallete"
+    ],
+    "style": {
+      "bottom": "3.5rem",
+      "right": "0.4rem"
+    }
+  }
+]"""
 
+btns = json.loads(btn_settings_editor_btns)
 
 # Initialize chat history in session state
 if "messages" not in st.session_state:
@@ -112,13 +208,15 @@ GROUP BY
 ORDER BY 
     total_spent DESC
 LIMIT 50;"""
-      # st.session_state.code = code_editor(code_sql , lang='sql' ,height=200)
-      st.session_state.code = st_ace(height=200,language='sql' , theme='twilight' , keybinding='emacs')
-      if st.session_state.code :
-        st.session_state.messages.append({"sender": "You", "text": st.session_state.code})
-        # if st.session_state.code['type'] == "submit" and len(st.session_state.code['text']) != 0:
-        st.chat_message("user").code(f"""{st.session_state.code}""" , language='sql')
+    #   st.session_state.code = code_editor(code_sql,focus=True , lang='sql' ,height=200,buttons=[{"name": "Copy", "feather": "Copy", "alwaysOn": True, "commands": ["copyAll"], "style": {"top": "0.46rem", "right": "0.4rem"}}])
+      st.session_state.code = code_editor(code_sql,focus=True , lang='sql' ,height=(19,22),buttons=btns ,options={"wrap": True})
+    #   st.session_state.code = st_ace(value=code_sql,height=200,language='sql' , theme='twilight' , keybinding='emacs')
+    #   if st.session_state.code :
+      if st.session_state.code['type'] == "submit" and len(st.session_state.code['text']) != 0:
+        st.session_state.messages.append({"sender": "You", "text": st.session_state.code['text']})
+        st.chat_message("user").code(f"""{st.session_state.code['text']}""" , language='sql')
         st.session_state.call_code = False
+        st.rerun()
 
 # Capture user input using chat_input
 user_input = st.chat_input("Type your message here...")

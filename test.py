@@ -539,3 +539,221 @@ print("Hello from code editor!")
 
 # Example usage:
 display_and_manipulate_code_editor()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# import streamlit as st
+# from code_editor import code_editor
+# import json
+# import time
+# import io
+# import contextlib
+
+# def execute_code(code):
+#     """
+#     Executes Python code and returns the console output.
+
+#     Args:
+#         code (str): The Python code to execute.
+
+#     Returns:
+#         tuple: A tuple containing the output (str) and an error flag (bool).
+#                The error flag is True if an error occurred, False otherwise.
+#     """
+#     output = io.StringIO()
+#     try:
+#         with contextlib.redirect_stdout(output):
+#             exec(code)
+#         return output.getvalue(), False
+#     except Exception as e:
+#         return f"An error occurred: {e}", True
+
+# def display_code_editor(code: str = "", lang: str = "python"):
+#     """
+#     Displays and handles interactions with a code editor.
+#     """
+#     if "code" not in st.session_state:
+#         st.session_state.code = None
+
+#     # Button settings for the code editor
+#     btn_settings_editor_btns = """
+#     [
+#       {
+#         "name": "Copy",
+#         "feather": "Copy",
+#         "hasText": true,
+#         "alwaysOn": true,
+#         "commands": [
+#           "copyAll",
+#           [
+#             "infoMessage",
+#             {
+#               "text": "Copied to clipboard!",
+#               "timeout": 2500,
+#               "classToggle": "show"
+#             }
+#           ]
+#         ],
+#         "style": {
+#           "top": "0rem",
+#           "right": "0.4rem"
+#         }
+#       },
+#       {
+#         "name": "Run",
+#         "feather": "Play",
+#         "primary": true,
+#         "hasText": true,
+#         "showWithIcon": true,
+#         "commands": [
+#           "submit"
+#         ],
+#         "style": {
+#           "bottom": "0.44rem",
+#           "right": "0.4rem"
+#         }
+#       },
+#       {
+#         "name": "Cancel",
+#         "feather": "XCircle",
+#         "primary": true,
+#         "hasText": true,
+#         "showWithIcon": true,
+#         "commands": [
+#           "cancel",
+#           [
+#             "response",
+#             "cancelled"
+#           ]
+#         ],
+#         "style": {
+#           "bottom": "3rem",
+#           "right": "0.4rem"
+#         }
+#       }
+#     ]
+#     """
+#     css_string = '''
+# background-color: #bee1e5;
+
+# body > #root .ace-streamlit-dark~& {
+#    background-color: #262830;
+# }
+
+# .ace-streamlit-dark~& span {
+#    color: #fff;
+#    opacity: 0.6;
+# }
+
+# span {
+#    color: #000;
+#    opacity: 0.5;
+# }
+
+# .code_editor-info.message {
+#    width: inherit;
+#    margin-right: 75px;
+#    order: 2;
+#    text-align: center;
+#    opacity: 0;
+#    transition: opacity 0.7s ease-out;
+# }
+
+# .code_editor-info.message.show {
+#    opacity: 0.6;
+# }
+
+# .ace-streamlit-dark~& .code_editor-info.message.show {
+#    opacity: 0.5;
+# }
+# '''
+#     info_bar = {
+#   "name": "language info",
+#   "css": css_string,
+#   "style": {
+#             "order": "1",
+#             "display": "flex",
+#             "flexDirection": "row",
+#             "alignItems": "center",
+#             "width": "100%",
+#             "height": "2.5rem",
+#             "padding": "0rem 0.75rem",
+#             "borderRadius": "8px 8px 0px 0px",
+#             "zIndex": "9993"
+#            },
+#   "info": [{
+#             "name": lang,
+#             "style": {"width": "100px"}
+#            }]
+# }
+#     btns = json.loads(btn_settings_editor_btns)
+
+#     initial_code = """# Enter your Python code here
+# print("Hello from code editor!")
+# """
+#     st.session_state.code = code_editor(code, focus=True, lang='python', height=(19, 22), buttons=btns, options={"wrap": True}, info=info_bar)
+
+#     if st.session_state.code['type'] == "submit" and len(st.session_state.code['text']) != 0:
+#         with st.spinner('Processing...'):
+#             time.sleep(1)
+#             result, error_occurred = execute_code(st.session_state.code['text'])
+#             if not error_occurred:
+#                 st.session_state.messages.append({"sender": "You", "text": st.session_state.code['text']})
+#                 st.session_state.messages.append({"sender": "assistant", "text": result})
+#             else:
+#                 st.session_state.messages.append({"sender": "assistant", "text": result})
+#         st.rerun()
+#     elif st.session_state.code['type'] == "cancelled":
+#         st.rerun()
+
+# def display_chat_history():
+#     """Displays the chat history."""
+#     for message in st.session_state.messages:
+#         sender, text = message["sender"], message["text"]
+#         with st.fragment(key=text):  # Use st.fragment to prevent re-rendering
+#             if sender == 'You':
+#                 st.chat_message("user").code(f"""{text}""", language='sql')
+#             else:
+#                 with st.chat_message("assistant"):
+#                     with st.container(height=250, border=False):
+#                         st.text(text)
+
+# def main():
+#     """Main function to run the Streamlit application."""
+#     if "messages" not in st.session_state:
+#         st.session_state.messages = []
+#     if "call_code" not in st.session_state:
+#         st.session_state.call_code = False
+
+#     display_chat_history()
+
+#     user_input = st.chat_input("Type your message here...")
+#     if user_input:
+#         if user_input == '/editor':
+#             st.session_state.call_code = True
+#             st.rerun()
+#         else:
+#             st.session_state.messages.append({"sender": "You", "text": user_input})
+#             bot_response = f"Echo: {user_input}"
+#             st.session_state.messages.append({"sender": "Bot", "text": bot_response})
+#             st.session_state.call_code = False
+#             st.rerun()
+
+#     if st.session_state.call_code:
+#         display_code_editor()
+
+# if __name__ == "__main__":
+#     main()

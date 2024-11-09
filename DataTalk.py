@@ -485,26 +485,63 @@ def handle_user_input(prompt):
 
 
 def handle_sql_query(prompt):
-    prompt_template = f"""You are a SQL expert. Given an input question, create a syntactically correct {get_d()} query to run depending on the type of DBMS( {get_d()} ).
+    # prompt_template = f"""You are a SQL expert. Given an input question, create a syntactically correct {get_d()} query to run depending on the type of DBMS( {get_d()} ).
 
-    <Restrictions>
-    1. DO NOT make any DML statements (INSERT, UPDATE, DELETE, DROP etc.) to the database. It is not our database.
-    2. DO NOT use any SQL Clauses(IS, NOT, IN,..etc) like Aliases.
-    3. Use Aliases for rename the tables.
-    4. Always give a names for the result columns.
-    </Restrictions>
+    # <Restrictions>
+    # 1. DO NOT make any DML statements (INSERT, UPDATE, DELETE, DROP etc.) to the database. It is not our database.
+    # 2. DO NOT use any SQL Clauses(IS, NOT, IN,..etc) like Aliases.
+    # 3. Use Aliases for rename the tables.
+    # 4. Always give a names for the result columns.
+    # </Restrictions>
 
-    <Question>
+    # <Question>
+    # {prompt}
+    # </Question>
+
+    # <DATABASE_SCHEMA>
+    # {get_schema()}.
+    # </DATABASE_SCHEMA>
+
+    # ---
+
+    # SQL Query :
+    # """
+    prompt_template = f"""You are a SQL expert. Create a syntactically correct {get_d()} query based on the input question.
+    
+    <CONTEXT>
+    - Database Type: {get_d()}
+    </CONTEXT>
+
+    <VALIDATION_RULES>
+    1. NO DML statements (INSERT, UPDATE, DELETE, DROP etc.)
+    2. NO implicit SQL clauses (IS, NOT, IN) as aliases
+    3. MUST use table aliases (e.g., SELECT t.column FROM table t)
+    4. MUST provide column aliases for calculated fields
+    5. AVOID using * - explicitly list needed columns
+    6. Add comments for complex logic
+    </VALIDATION_RULES>
+
+    <FORMATTING>
+    1. Use uppercase for SQL keywords
+    2. Use proper indentation for readability
+    3. Break long queries into multiple lines
+    4. Example:
+        SELECT 
+            t.column_name AS field_name,
+            COUNT(t.id) AS record_count
+        FROM table_name t
+        GROUP BY t.column_name
+    </FORMATTING>
+
+    <QUESTION>
     {prompt}
-    </Question>
+    </QUESTION>
 
     <DATABASE_SCHEMA>
-    {get_schema()}.
+    {get_schema()}
     </DATABASE_SCHEMA>
 
-    ---
-
-    SQL Query :
+    SQL Query:
     """
     prompt_template_2 = f"""
     <Question>
@@ -986,38 +1023,105 @@ def handle_plotly_visualization(prompt: str):
             if str(prompt).startswith('-'):
                 prompt = str(prompt[1:]).strip()
 
-            prompt_template_plotly = f"""
-            Your task is to generate Python code that creates a plot based on the provided dataframe information.
+            # prompt_template_plotly = f"""
+            # Your task is to generate Python code that creates a plot based on the provided dataframe information.
 
-            <plot_type>
-            {str(prompt)}
-            </plot_type>
+            # <plot_type>
+            # {str(prompt)}
+            # </plot_type>
 
-            <DataFrame_info>
-            {get_dataframe_info(st.session_state.DataFrame)}
-            </DataFrame_info>
+            # <DataFrame_info>
+            # {get_dataframe_info(st.session_state.DataFrame)}
+            # </DataFrame_info>
 
-            <steps>
-            1. Carefully review the dataframe information provided in the <df_info> section to understand the structure and content of the dataframe.
-            2. Generate Python code to create the specified plot type using the dataframe. Consider the following:
-            3. Import necessary libraries (e.g., pandas, plotly)
-            4. Use only import plotly.graph_objects as go for generate plots
-            4. Use appropriate Plotly functions to generate the plot based on the <plot_type>
-            5. Customize the plot (e.g., title, labels, legend, colors) to enhance readability and aesthetics
-            6. Assign the plot figure to a variable named `fig`
-            </steps>
+            # <steps>
+            # 1. Carefully review the dataframe information provided in the <df_info> section to understand the structure and content of the dataframe.
+            # 2. Generate Python code to create the specified plot type using the dataframe. Consider the following:
+            # 3. Import necessary libraries (e.g., pandas, plotly)
+            # 4. Use only import plotly.graph_objects as go for generate plots
+            # 4. Use appropriate Plotly functions to generate the plot based on the <plot_type>
+            # 5. Customize the plot (e.g., title, labels, legend, colors) to enhance readability and aesthetics
+            # 6. Assign the plot figure to a variable named `fig`
+            # </steps>
 
-            <restrictions>
-            1. Assume that the dataframe is already loaded and accessible using the variable `df`. Do not include code to initialize or create the dataframe.
-            2. Use the Plotly library for creating the plot.
-            3. Do not include `fig.show()` in your code to display the plot.
-            3. Do not include any functions of display or print.
-            </restrictions>
+            # <restrictions>
+            # 1. Assume that the dataframe is already loaded and accessible using the variable `df`. Do not include code to initialize or create the dataframe.
+            # 2. Use the Plotly library for creating the plot.
+            # 3. Do not include `fig.show()` in your code to display the plot.
+            # 3. Do not include any functions of display or print.
+            # </restrictions>
 
-            #################
+            # #################
 
-            Here is the Python code :
-            """
+            # Here is the Python code :
+            # """
+            
+            prompt_template_plotly = f"""You are a Plotly visualization expert. Create a plot using the existing DataFrame.
+
+    <CONTEXT>
+    Current DataFrame Info:
+    {get_dataframe_info(st.session_state.DataFrame)}
+    </CONTEXT>
+
+    <PLOT_REQUEST>
+    {str(prompt)}
+    </PLOT_REQUEST>
+
+    <VALIDATION_RULES>
+    1. Use ONLY the existing DataFrame 'df' - DO NOT create new data
+    2. Use ONLY plotly.graph_objects as go
+    3. Return ONLY the plot generation code
+    4. All plots must be responsive and interactive
+    5. Include hover data where appropriate
+    6. Use consistent color schemes
+    </VALIDATION_RULES>
+
+    <PLOT_GUIDELINES>
+    1. Add clear titles and axis labels
+    2. Include units where applicable  
+    3. Format numbers appropriately
+    4. Add hover templates for interactivity
+    5. Use appropriate chart types for data
+    6. Consider colorblind-friendly palettes
+    </PLOT_GUIDELINES>
+
+    <CODE_STRUCTURE>
+    1. Import statement: import plotly.graph_objects as go
+    2. Create figure: fig = go.Figure()
+    3. Add traces with existing df data
+    4. Update layout with proper styling
+    
+    Example:
+    ```python
+    import plotly.graph_objects as go
+    
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=df['x_column'],
+            y=df['y_column'],
+            name='Series Name'
+        )
+    )
+    fig.update_layout(
+        title='Plot Title',
+        xaxis_title='X Axis',
+        yaxis_title='Y Axis'
+    )
+    ```
+    </CODE_STRUCTURE>
+
+    <RESTRICTIONS>
+    1. DO NOT create sample data or new DataFrames
+    2. DO NOT use df.show() or print statements
+    3. DO NOT use fig.show()
+    4. USE ONLY the existing 'df' DataFrame
+    5. DO NOT import pandas or numpy
+    6. DO NOT create helper functions
+    </RESTRICTIONS>
+
+    Generate the Python code:
+    """
             prompt_template_2 = f"""
             <plot_type>
                 {str(prompt)}
@@ -1140,6 +1244,7 @@ def get_dataframe_info(df):
         "columns": df.columns.tolist(),
         "dtypes": df.dtypes.to_dict(),
         "head": df.head().to_json(orient='records', lines=True),
+        "tail": df.tail().to_json(orient='records', lines=True),
         "isna": df.isna().sum().to_dict()
     }
     return info

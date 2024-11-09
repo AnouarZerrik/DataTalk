@@ -26,7 +26,8 @@ from contextlib import redirect_stdout
 import json
 import plotly.io as pio
 import duckdb
-
+from code_editor import code_editor
+import time
 st.set_page_config(
     page_title="Data Chat",
     # layout="wide"
@@ -106,7 +107,12 @@ def init_session_state():
         st.session_state.conn = duckdb.connect()
     if 'schema_changed' not in st.session_state:
         st.session_state.schema_changed = False
-
+    if 'code_for_editor' not in st.session_state:
+        st.session_state.code_for_editor = None
+    if "code_of_editor" not in st.session_state:
+        st.session_state.code_of_editor = None
+    if "call_code" not in st.session_state:
+        st.session_state.call_code = False
 
 # SQLite connection function
 
@@ -441,6 +447,10 @@ def query_interface_page():
                 elif Cancel:
                     st.session_state.dash_active = False
                     st.rerun()
+                    
+    if st.session_state.call_code:
+        display_code_editor(str(st.session_state.code_for_editor),"sql")
+        
 
 
 def handle_user_input(prompt):
@@ -457,6 +467,8 @@ def handle_user_input(prompt):
         handle_plotly_visualization(prompt)
     elif str(prompt).strip() == '/dash':
         st.session_state.dash_active = True
+    elif str(prompt).strip() == '/editor':
+        st.session_state.call_code = True
         st.rerun()
     elif str(prompt).strip().startswith('/replace'):
         table_name = str(prompt).replace("/replace", '').strip()
@@ -584,6 +596,8 @@ def handle_sql_query(prompt):
             st.session_state.df_is_changed = True
 
         sql = markdown_to_sql(sql)
+        
+        st.session_state.code_for_editor = query
 
 
         st.session_state.messages.append(
@@ -2424,7 +2438,144 @@ def create_dashboard_html(figures_list, dashboard_title='Dashboard', fig_titles=
     
 #     return file_name
 
+def display_code_editor(code: str = "", lang: str = "python"):
+    """
+    Displays and handles interactions with a code editor.
+    """
+    
 
+    # Button settings for the code editor
+    btn_settings_editor_btns = """
+    [
+      {
+        "name": "Copy",
+        "feather": "Copy",
+        "hasText": true,
+        "alwaysOn": true,
+        "commands": [
+          "copyAll",
+          [
+            "infoMessage",
+            {
+              "text": "Copied to clipboard!",
+              "timeout": 2500,
+              "classToggle": "show"
+            }
+          ]
+        ],
+        "style": {
+          "top": "0rem",
+          "right": "0.4rem"
+        }
+      },
+      {
+        "name": "Run",
+        "feather": "Play",
+        "primary": true,
+        "hasText": true,
+        "showWithIcon": true,
+        "commands": [
+          "submit"
+        ],
+        "style": {
+          "bottom": "0.44rem",
+          "right": "0.4rem"
+        }
+      },
+      {
+        "name": "Cancel",
+        "feather": "XCircle",
+        "primary": true,
+        "hasText": true,
+        "showWithIcon": true,
+        "commands": [
+          "cancel",
+          [
+            "response",
+            "cancelled"
+          ]
+        ],
+        "style": {
+          "bottom": "3rem",
+          "right": "0.4rem"
+        }
+      }
+    ]
+    """
+    css_string = '''
+background-color: #bee1e5;
+
+body > #root .ace-streamlit-dark~& {
+   background-color: #262830;
+}
+
+.ace-streamlit-dark~& span {
+   color: #fff;
+   opacity: 0.6;
+}
+
+span {
+   color: #000;
+   opacity: 0.5;
+}
+
+.code_editor-info.message {
+   width: inherit;
+   margin-right: 75px;
+   order: 2;
+   text-align: center;
+   opacity: 0;
+   transition: opacity 0.7s ease-out;
+}
+
+.code_editor-info.message.show {
+   opacity: 0.6;
+}
+
+.ace-streamlit-dark~& .code_editor-info.message.show {
+   opacity: 0.5;
+}
+'''
+    info_bar = {
+  "name": "language info",
+  "css": css_string,
+  "style": {
+            "order": "1",
+            "display": "flex",
+            "flexDirection": "row",
+            "alignItems": "center",
+            "width": "100%",
+            "height": "2.5rem",
+            "padding": "0rem 0.75rem",
+            "borderRadius": "8px 8px 0px 0px",
+            "zIndex": "9993"
+           },
+  "info": [{
+            "name": lang,
+            "style": {"width": "100px"}
+           }]
+}
+    btns = json.loads(btn_settings_editor_btns)
+
+#     initial_code = """# Enter your Python code here
+# print("Hello from code editor!")
+# """
+    st.session_state.code_of_editor = code_editor(code, focus=True, lang=lang, height=(19, 22), buttons=btns, options={"wrap": True}, info=info_bar)
+
+    if st.session_state.code_of_editor['type'] == "submit" and len(st.session_state.code_of_editor['text']) != 0:
+        with st.spinner('Processing...'):
+            time.sleep(1)
+            result, error_occurred = execute_code(st.session_state.code_of_editor['text'])
+            if not error_occurred:
+                st.session_state.messages.append({"sender": "You", "text": st.session_state.code_of_editor['text']})
+                st.session_state.messages.append({"sender": "assistant", "text": result})
+            else:
+                st.session_state.messages.append({"sender": "assistant", "text": result})
+        st.session_state.call_code = False
+        st.rerun()
+    elif st.session_state.code_of_editor['type'] == "cancelled":
+        st.session_state.call_code = False
+        st.rerun()
 
 
 # Main app logic

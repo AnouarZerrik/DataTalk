@@ -305,7 +305,7 @@ def connection_page():
     init_session_state()
 
     source_type = st.selectbox(
-        'Select Data Source Type', ('Database', 'File', 'Multi-files'))
+        'Select Data Source Type', ('Database', 'File', 'Multi-files','History'))
 
     if source_type == 'Database':
         db_type = st.selectbox('Select Database Type',
@@ -335,7 +335,7 @@ def connection_page():
             st.session_state.page = "page2"
         else:
             st.warning('Select Your File(CSV - EXCEL)')
-    else:
+    elif source_type == 'Multi-files':
         load_multi_files()
         chat_button = st.button('Chat')
         if chat_button and conn_is_empty(st.session_state.conn) is not True:
@@ -343,6 +343,21 @@ def connection_page():
             st.session_state.page = "page2"
         else:
             st.warning('Select Your File(CSV - EXCEL)')
+    elif source_type == 'History':
+        from streamlit_timeline import st_timeline
+
+        items = [
+            {"id": 1, "content": "2022-10-20", "start": "2022-10-20"},
+            {"id": 2, "content": "2022-10-09", "start": "2022-10-09"},
+            {"id": 3, "content": "2022-10-18", "start": "2022-10-18"},
+            {"id": 4, "content": "2022-10-16", "start": "2022-10-16"},
+            {"id": 5, "content": "2022-10-25", "start": "2022-10-25"},
+            {"id": 6, "content": "2022-10-27", "start": "2022-10-27"},
+        ]
+
+        timeline = st_timeline(items, groups=[], options={}, height="270px")
+        st.subheader("Selected item")
+        st.write(timeline)
 # Query Interface page
 
 
